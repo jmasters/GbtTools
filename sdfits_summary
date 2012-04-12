@@ -1,0 +1,117 @@
+#! /usr/bin/env python2.7
+
+import sys
+if sys.version_info[0] != 2 or sys.version_info[1] < 7:
+    ver = '.'.join((str(sys.version_info[0]),str(sys.version_info[1])))
+    print 'ERROR: Your version of python ['+ver+'] must be >= 2.7',\
+        'to run this program. Please try again.'
+    sys.exit()
+import csv
+import string
+from collections import OrderedDict
+import argparse
+
+if __name__ == '__main__':
+
+    
+    parser = argparse.ArgumentParser(description=\
+        'Summarize a SDFITS index file by scan.')
+    parser.add_argument("infile", default='', help="SDFITS index file name",
+        metavar='FILENAME')
+    args = parser.parse_args()
+    
+    if not args.infile.endswith('.index'):
+        print 'ERROR: Input file name does not end with \'.index\''
+        print '    Please make sure you are using an index file'
+        sys.exit(1)
+
+    try:
+        ifile = open(args.infile)
+    except IOError:
+        print "ERROR: Could not open file.  Please check and try again."
+        sys.exit(1)
+    
+    print args.infile
+
+    while True:
+        line = ifile.readline()
+        # look for start of row data or EOF (i.e. not line)
+        if '[rows]' in line or not line:
+            break
+
+    reader = csv.DictReader(ifile,delimiter=' ',skipinitialspace=True)
+
+    previousscan = None
+    previousrow = None
+    scans = set([])
+    firstrow = reader.next()
+    scans.add(firstrow['SCAN'])
+
+    fields = OrderedDict()
+    fields['SCAN'] = '%4s'
+    fields['SOURCE'] = '%16s'
+    fields['PROCEDURE'] = '%15s'
+    fields['OBSID'] = '%8s'
+    fields['BANDWIDTH'] = '%9s'
+    fields['RESTFREQ'] = '%8s'
+    fields['NUMCHN'] = '%6s'
+    fields['AZ'] = '%5s'
+    fields['EL'] = '%5s' 
+    fields['FREQRES'] = '%9s'
+    fields['TIMESTAMP'] = '%20s'
+    fields['PROC#'] =  '%5s'
+    fields['nFEEDS'] =  '%5s'
+    fields['nIFS'] =  '%5s'
+    fields['nINTS'] =  '%5s\n'
+    sys.stdout.write( ' '.join(fields.values()) % tuple(fields.keys()) )
+    
+    feeds = set([])
+    ifs = set([])
+    
+    for row in reader:
+        
+        feeds.add(row['FEED'])
+        ifs.add(row['IFNUM'])
+
+        if row['SCAN'] != firstrow['SCAN'] and row['SCAN'] != previousscan:
+
+            previousscan = row['SCAN']
+
+            fields = OrderedDict()
+            fields['SCAN'] = ('%4s',previousrow['SCAN'])
+            fields['SOURCE'] = ('%16s',previousrow['SOURCE'])
+            fields['PROCEDURE'] = ('%15s',previousrow['PROCEDURE'])
+            fields['OBSID'] = ('%8s',previousrow['OBSID'])
+            fields['BANDWIDTH'] = ('%9.2g',\
+                string.atof(previousrow['BANDWIDTH']))
+            fields['RESTFREQ'] = ('%8.2g',\
+                string.atof(previousrow['RESTFREQ']))
+            fields['NUMCHN'] = ('%6s',previousrow['NUMCHN'])
+            fields['AZ'] = ('%5.1f',string.atof(previousrow['AZIMUTH']))
+            fields['EL'] = ('%5.1f',string.atof(previousrow['ELEVATION']))
+            fields['FREQRES'] = ('%9.2f',string.atof(previousrow['FREQRES']))
+            fields['TIMESTAMP'] = ('%20s',previousrow['TIMESTAMP'])
+            fields['PROCS'] =  ('%5s',previousrow['PROCS'])
+            fields['nFEEDS'] =  ('%5d',len(feeds))
+            fields['nIFS'] =  ('%5d',len(ifs))
+            fields['nINTS'] =  ('%5d\n',(int(previousrow['INT']) + 1))
+
+            formatstring = []
+            fieldvalues = []
+            for val in fields.values():
+                formatstring.append(val[0])
+                fieldvalues.append(val[1])
+            fieldformat = ' '.join(formatstring)
+            
+            sys.stdout.write( fieldformat % tuple(fieldvalues) )
+            feeds.clear()
+            ifs.clear()
+    
+        scans.add(row['SCAN'])
+
+        previousrow = row
+
+    try:
+        ifile.close()
+    except NameError:
+        pass
