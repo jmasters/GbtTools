@@ -28,7 +28,9 @@ if __name__ == '__main__':
     if len(sys.argv) == 2:
         if sys.argv[1].isdigit():
             print sys.argv[1],'==>',base36encode(int(sys.argv[1]))
-        else:
+        elif sys.argv[1].isalnum():
             print sys.argv[1],'==>',base36decode(sys.argv[1])
+        else:
+            print "'{}' is not a valid identifier".format(sys.argv[1])
     else:
         print 'Please supply one system id or AIPS extension to convert and try again.'
