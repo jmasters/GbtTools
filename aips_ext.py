@@ -1,54 +1,34 @@
-#! /usr/bin/env python
+import sys
 
-def base10toN(num,n):
-    """Change a  to a base-n number.
-    Up to base-36 is supported without special notation."""
-    num_rep={10:'a',
-         11:'b',
-         12:'c',
-         13:'d',
-         14:'e',
-         15:'f',
-         16:'g',
-         17:'h',
-         18:'i',
-         19:'j',
-         20:'k',
-         21:'l',
-         22:'m',
-         23:'n',
-         24:'o',
-         25:'p',
-         26:'q',
-         27:'r',
-         28:'s',
-         29:'t',
-         30:'u',
-         31:'v',
-         32:'w',
-         33:'x',
-         34:'y',
-         35:'z'}
-    new_num_string=''
-    current=num
-    while current!=0:
-        remainder=current%n
-        if 36>remainder>9:
-            remainder_string=num_rep[remainder]
-        elif remainder>=36:
-            remainder_string='('+str(remainder)+')'
-        else:
-            remainder_string=str(remainder)
-        new_num_string=remainder_string+new_num_string
-        current=current/n
-    return new_num_string.upper()
-
-def aips_ext(uid):
-    """Convert user id to AIPS (base-36) filename extension.
-    """
-    return base10toN(uid, 36)
-
+def base36encode(number, alphabet='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'):
+    """Converts an integer to a base36 string."""
+    if not isinstance(number, (int, long)):
+        raise TypeError('number must be an integer')
+ 
+    base36 = ''
+    sign = ''
+ 
+    if number < 0:
+        sign = '-'
+        number = -number
+ 
+    if 0 <= number < len(alphabet):
+        return sign + alphabet[number]
+ 
+    while number != 0:
+        number, i = divmod(number, len(alphabet))
+        base36 = alphabet[i] + base36
+ 
+    return sign + base36
+ 
+def base36decode(number):
+    return int(number, 36)
+ 
 if __name__ == '__main__':
-    import sys
-    print aips_ext(int(sys.argv[1]))
-
+    if len(sys.argv) == 2:
+        if sys.argv[1].isdigit():
+            print sys.argv[1],'==>',base36encode(int(sys.argv[1]))
+        else:
+            print sys.argv[1],'==>',base36decode(sys.argv[1])
+    else:
+        print 'Please supply one system id or AIPS extension to convert and try again.'
